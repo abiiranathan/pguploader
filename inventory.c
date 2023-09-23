@@ -64,8 +64,8 @@ static void exitOnError(PGresult* res, const char* msg) {
 }
 
 // Upload CSV file to the database.
-void uploadCSVFile(PGconn* conn, const char* filename, const char* inventory_dept,
-                   const char* billable_type) {
+void uploadCSVFile(PGconn* conn, const char* filename,
+                   const char* inventory_dept, const char* billable_type) {
 
   printf("[DEGUG]: filename=%s\n", filename);
   printf("[DEGUG]: inventory_dept=%s\n", inventory_dept);
@@ -107,7 +107,8 @@ void uploadCSVFile(PGconn* conn, const char* filename, const char* inventory_dep
   }
 
   res = PQprepare(conn, "insert_inventory_item", itemInsertStmt, 3, NULL);
-  exitOnError(res, "ERROR: unable to prepare insert_inventory_item prepared statement");
+  exitOnError(
+    res, "ERROR: unable to prepare insert_inventory_item prepared statement");
 
   res = PQprepare(conn, "insert_price", priceInsertStmt, 2, NULL);
   exitOnError(res, "ERROR: unable to prepare insert_price statement");
@@ -132,8 +133,10 @@ void uploadCSVFile(PGconn* conn, const char* filename, const char* inventory_dep
 
     // Insert inventory item.
     const char* paramValues[3] = {item.Name, inventory_dept, billable_type};
-    res = PQexecPrepared(conn, "insert_inventory_item", 3, paramValues, NULL, NULL, 0);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK && PQresultStatus(res) != PGRES_TUPLES_OK) {
+    res = PQexecPrepared(conn, "insert_inventory_item", 3, paramValues, NULL,
+                         NULL, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK &&
+        PQresultStatus(res) != PGRES_TUPLES_OK) {
       fprintf(stderr, "ERROR: unable to insert inventory item\n");
       fprintf(stderr, "[ERROR]: %s\n", PQerrorMessage(conn));
       success = false;
@@ -166,7 +169,8 @@ void uploadCSVFile(PGconn* conn, const char* filename, const char* inventory_dep
       const char* paramValues[2] = {id, cash_price};
       res = PQexecPrepared(conn, "insert_price", 2, paramValues, NULL, NULL, 0);
       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "ERROR: unable to execute insert_price prepared statement");
+        fprintf(stderr,
+                "ERROR: unable to execute insert_price prepared statement");
         fprintf(stderr, "[ERROR]: %s\n", PQerrorMessage(conn));
         success = false;
         goto cleanup;

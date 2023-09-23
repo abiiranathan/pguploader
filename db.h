@@ -1,6 +1,7 @@
 #ifndef __DB_H__
 #define __DB_H__
-#define _DEFAULT_SOURCE 1  //  This macro ensures fdopen, strdup are available(--std>=c99)
+#define _DEFAULT_SOURCE                                                        \
+  1  //  This macro ensures fdopen, strdup are available(--std>=c99)
 
 #include <postgresql/libpq-fe.h>
 #include <readline/history.h>

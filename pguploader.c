@@ -1,5 +1,5 @@
-#define _DEFAULT_SOURCE 1    //  This macro ensures fdopen, strdup are available(--std>=c99)
-#define FLAG_IMPLEMENTATION  // Required for as flag.h is stb-style header-only lib.
+//  This macro ensures fdopen, strdup are available(--std>=c99)
+#define _DEFAULT_SOURCE 1
 
 #include <postgresql/libpq-fe.h>
 #include <stdio.h>
@@ -11,8 +11,6 @@
 #include "inventory.h"
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / (sizeof(arr[0])))
-#define MAX_GLOBAL_FLAGS 10
-#define MAX_SUBCOMMANDS 3
 
 // Declare global Flags
 static char* database_uri = "";
@@ -22,71 +20,56 @@ static char* inventory_dept = "";
 static char* billable_type = "";
 
 void handleUploadCSV(FlagArgs args) {
-  const char* csv_file = *(const char**)flag_value(args.flags, args.num_flags, "csv");
-  const char* inventory_dept = *(const char**)flag_value(args.flags, args.num_flags, "dept");
-  const char* billable_type = *(const char**)flag_value(args.flags, args.num_flags, "billable");
+  char* csv_file = *(char**)flag_value(args.flags, args.num_flags, "csv");
+  char* inventory_dept =
+    *(char**)flag_value(args.flags, args.num_flags, "dept");
+  char* billable_type =
+    *(char**)flag_value(args.flags, args.num_flags, "billable");
 
   uploadCSVFile(conn, csv_file, inventory_dept, billable_type);
 }
 
 int main(int argc, char* argv[]) {
   // Create the flag context.
-  flag_ctx ctx = {0};
-  flag_context_init(&ctx, MAX_GLOBAL_FLAGS, MAX_SUBCOMMANDS);
+  flag_ctx* ctx = flag_context_init();
 
   // Add database URI global flag.
-  flag_add(&ctx, "db", &database_uri, FLAG_STRING, "PG connection URI", false);
+  flag_add(ctx, "db", &database_uri, FLAG_STRING, "PG connection URI", false);
 
-  // Initialize flags for query subcommand
-  flag query_flags[] = {
-    {"query", &queryString, FLAG_STRING, "Query string to execute", true, NULL},
-  };
+  // Execute a query subcommand
+  subcommand* execCmd =
+    flag_add_subcommand(ctx, "exec", "Execute a query", query, 1);
+  subcommand_add_flag(execCmd, "query", &queryString, FLAG_STRING,
+                      "Query string to execute", true, NULL);
 
-  // Initialize the flags for the upload subcommand.
-  flag upload_flags[] = {
-    {"csv", &csv_file, FLAG_STRING, "CSV file to upload", true, NULL},
-    {"dept", &inventory_dept, FLAG_STRING, "Inventory department", true, NULL},
-    {"billable", &billable_type, FLAG_STRING, "Billable type", true, NULL},
-  };
+  // upload subcommand
+  subcommand* uploadCmd = flag_add_subcommand(
+    ctx, "upload", "Upload a CSV file for price list", handleUploadCSV, 3);
 
-  subcommand subcommands[] = {
-    {
-      .name = "exec",
-      .description = "Execute a query",
-      .callback = query,
-      .flags = query_flags,
-      .num_flags = ARRAY_SIZE(query_flags),
-    },
-    {
-      .name = "sql",
-      .description = "Start an interactive SQL prompt",
-      .callback = startSQLPrompt,
-      .flags = NULL,
-    },
-    {
-      .name = "upload",
-      .description = "Upload a CSV file",
-      .callback = handleUploadCSV,
-      .flags = upload_flags,
-      .num_flags = ARRAY_SIZE(upload_flags),
-    },
-  };
+  subcommand_add_flag(uploadCmd, "csv", &csv_file, FLAG_STRING,
+                      "CSV file to upload", true, NULL);
+  subcommand_add_flag(uploadCmd, "dept", &inventory_dept, FLAG_STRING,
+                      "Inventory department", true, NULL);
+  subcommand_add_flag(uploadCmd, "billable", &billable_type, FLAG_STRING,
+                      "Billable type", true, NULL);
 
-  flag_add_subcommands(&ctx, subcommands, ARRAY_SIZE(subcommands));
+  // sql subcommand
+  flag_add_subcommand(ctx, "sql", "Start an interactive SQL prompt",
+                      startSQLPrompt, 0);
 
   // Parse the flags and validate them.
-  subcommand* matchingCmd = parse_flags(&ctx, argc, argv);
+  subcommand* matchingCmd = parse_flags(ctx, argc, argv);
 
   // connect to the database as database_uri will be populated(if available)
   connect_to_database(database_uri);
 
   // If a subcommand matches, run it.
   if (matchingCmd) {
-    subcommand_call(matchingCmd, &ctx);
+    subcommand_call(matchingCmd, ctx);
   }
 
   // Free dynamically memory used by flag context.
-  flag_destroy_context(&ctx);
+  flag_destroy_context(ctx);
 
   if (conn) {
     PQfinish(conn);

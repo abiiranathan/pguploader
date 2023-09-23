@@ -33,7 +33,7 @@ bool validateDepartment(const char* inventory_dept);
 bool validateBillableType(const char* billable_type);
 
 // Upload CSV file to the database.
-void uploadCSVFile(PGconn* conn, const char* filename, const char* inventory_dept,
-                   const char* billable_type);
+void uploadCSVFile(PGconn* conn, const char* filename,
+                   const char* inventory_dept, const char* billable_type);
 
 #endif /* __INVENTORY_H__ */
