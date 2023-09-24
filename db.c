@@ -7,7 +7,7 @@ PGconn* conn = NULL;
 PQprintOpt defaultPrintOptions = {
   .header = 1,      // Include column headers
   .align = 1,       // Align column data
-  .standard = 1,    // Use standard (ASCII) characters
+  .standard = 0,    // Use standard (ASCII) characters
   .html3 = 0,       // Do not use HTML formatting
   .expanded = 0,    // Do not expand tables
   .pager = 0,       // Do not use a pager
@@ -95,7 +95,7 @@ static void* arenaAlloc(ArenaAllocator* arena, size_t size) {
 
 void query(FlagArgs args) {
   const char* sql_query =
-    *(const char**)flag_value(args.flags, args.num_flags, "query");
+    *(const char**)FlagValue(args.flags, args.num_flags, "query");
   if (!sql_query) {
     fprintf(stderr, "Query string is not provided\n");
     return;
